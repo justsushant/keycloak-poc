@@ -1,0 +1,10 @@
+.endpoint {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+.error-message {
+    color: #dc3545;
+}

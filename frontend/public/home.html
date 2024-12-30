@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Public Endpoints</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .endpoint {
+            margin-bottom: 2rem;
+            padding: 1rem;
+            border: 1px solid #dee2e6;
+            border-radius: 0.25rem;
+        }
+
+        .error-message {
+            color: #dc3545;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h1 class="mb-4">API Public Endpoints</h1>
+
+        <div class="endpoint">
+            <h2>GET /public/ping on backend</h2>
+            <button id="pingBtn" class="btn btn-primary">Ping</button>
+            <p id="pingResult" class="mt-2"></p>
+        </div>
+
+        <div class="endpoint">
+            <h2>Login With Keycloak</h2>
+            <form id="loginForm">
+                <button type="submit" class="btn btn-primary">Login</button>
+            </form>
+            <p id="loginResult" class="mt-2"></p>
+        </div>
+    </div>
+
+    <script>
+        const baseUrl = 'https://192.168.0.104:5000';
+
+        (async () => {
+            if ('serviceWorker' in navigator) {
+                try {
+                    await navigator.serviceWorker.register('/worker.js');
+                    // const sw = await navigator.serviceWorker.ready;
+                    // sw.active.postMessage({ action: 'initiateLogin' });
+                } catch (error) {
+                    console.error('Service Worker registration failed:', error);
+                }
+            } else {
+                alert('Service workers are not supported in your browser.');
+            }
+        })();
+
+        function displayResult(elementId, response, isError = false) {
+            const element = document.getElementById(elementId);
+            element.classList.remove('error-message');
+            if (isError) {
+                element.classList.add('error-message');
+            }
+            element.textContent = isError ? `Error: ${JSON.stringify(response)}` : `Response: ${JSON.stringify(response)}`;
+        }
+
+        async function makeRequest(endpoint, method, data = null) {
+            const url = `${baseUrl}${endpoint}`;
+            const headers = {
+                'Content-Type': 'application/json'
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: headers,
+                    body: data ? JSON.stringify(data) : null
+                });
+                const result = await response.json();
+                if (!response.ok) {
+                    throw result;
+                }
+                return result;
+            } catch (error) {
+                throw error;
+            }
+        }
+
+        async function getKeycloakLoginPageURL() {
+            const codeVerifier = generateCodeVerifier();
+            const codeChallenge = await generateCodeChallenge(codeVerifier);
+            const clientId = 'qwerty';
+            const redirectUri = 'https://192.168.0.104:3000/play';
+            const scope = 'openid';
+            const loginPageUrl = `https://192.168.0.104:443/realms/test/protocol/openid-connect/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+            // const loginPageUrl = `https://192.168.0.104:8443/realms/test/protocol/openid-connect/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+            navigator.serviceWorker.controller.postMessage({
+                type: 'STORE_DETAILS',
+                data: {
+                    code_verifier: codeVerifier,
+                    code_challenge: codeChallenge,
+                    redirect_uri: redirectUri,
+                }
+            });
+            return loginPageUrl;
+        }
+
+        function generateCodeVerifier() {
+            const array = new Uint8Array(32);
+            window.crypto.getRandomValues(array);
+            return btoa(String.fromCharCode.apply(null, array))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+        }
+
+        async function generateCodeChallenge(codeVerifier) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(codeVerifier);
+            const digest = await window.crypto.subtle.digest('SHA-256', data);
+            return btoa(String.fromCharCode.apply(null, new Uint8Array(digest)))
+                .replace(/\+/g, '-')
+                .replace(/\//g, '_')
+                .replace(/=+$/, '');
+        }
+
+        document.getElementById('pingBtn').addEventListener('click', async () => {
+            try {
+                const response = await makeRequest('/public/ping', 'GET');
+                displayResult('pingResult', response);
+            } catch (error) {
+                displayResult('pingResult', error, true);
+            }
+        });
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const loginPageURL = await getKeycloakLoginPageURL();
+
+            // redirect to keycloak login page
+            window.location.replace(loginPageURL);
+        });
+    </script>
+</body>
+
+</html>

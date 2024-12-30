@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: postgres:16.2
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-kdb}
+      POSTGRES_USER: ${POSTGRES_USER:-admin}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "pg_isready",
+          "-d",
+          "${POSTGRES_DB:-kdb}",
+          "-U",
+          "${POSTGRES_PASSWORD:-admin}"
+        ]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    restart: on-failure
+    stdin_open: true
+    tty: true
+    networks:
+      - keycloak_network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:${IMAGE_VERSION:-26.0.7}
+    command: start
+    environment:
+      KC_HOSTNAME: "https://192.168.0.104:8443"
+      # KC_HOSTNAME: ${KC_HOSTNAME:-http://localhost:8080}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: false
+      # KC_HTTP_ENABLED: true
+      CORS_ALLLOW_ORIGIN: "https://192.168.0.104:443, https://192.168.0.104:3000"
+      KC_HTTP_ENABLED: false
+      KC_HEALTH_ENABLED: true
+      KC_HTTPS_CERTIFICATE_FILE: /certs/192.168.0.104.pem
+      KC_HTTPS_CERTIFICATE_KEY_FILE: /certs/192.168.0.104-key.pem
+      KEYCLOAK_ADMIN: "admin"
+      KEYCLOAK_ADMIN_PASSWORD: "admin"
+      # KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      # KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres/${POSTGRES_DB:-kdb}
+      KC_DB_USERNAME: ${POSTGRES_USER:-admin}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-admin}
+    # ports:
+    #   - 8080:8080
+    ports:
+      - 8443:8443
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./:/certs:ro
+    networks:
+      - keycloak_network
+
+  nginx:
+    image: nginx:latest
+    ports:
+      - 443:443
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./:/certs:ro
+    depends_on:
+      keycloak:
+        condition: service_started
+    networks:
+      - keycloak_network
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  keycloak_network:
+    driver: bridge
