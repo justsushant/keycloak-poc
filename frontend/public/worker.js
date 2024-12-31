@@ -38,13 +38,12 @@ self.addEventListener('message', async (event) => {
 
         // get tokens from keycloak
         try {
-            const tokenEndpoint = new URL("https://192.168.0.104:443/realms/test/protocol/openid-connect/token")
-        // const tokenEndpoint = new URL("https://192.168.0.104:8443/realms/test/protocol/openid-connect/token")
+        const tokenEndpoint = new URL("https://localhost:8443/realms/test/protocol/openid-connect/token")
         const tokenEndpointParams = {
             grant_type: "authorization_code",
             code: data.code,
             redirect_uri: tokens.redirect_uri,
-            client_id: "qwerty",
+            client_id: "temp-client",
             code_verifier: tokens.code_verifier,
             code_challenge_method: 'S256',
         }
@@ -60,7 +59,7 @@ self.addEventListener('message', async (event) => {
                 "Content-type": "application/x-www-form-urlencoded",
                 // "Cache-Control": "no-store"
             },
-            mode: 'cors',
+            // mode: 'cors',
             // credentials: "include",
         })
 
@@ -102,10 +101,10 @@ self.addEventListener('fetch', async (event) => {
     event.respondWith(
         (async () => {
             const token = await getIndexedDB("tokenDB", "tokenStore", "token")
-            if (event.request.url.startsWith('https://192.168.0.104:3000/private')) {
+            if (event.request.url.startsWith('https://localhost:3000/private')) {
                 // console.log("token from fetch: ", token)
 
-                // if (token.accessToken && event.request.url.startsWith('https://192.168.0.104:3000/private')) {
+                // if (token.accessToken && event.request.url.startsWith('https://localhost:3000/private')) {
                 const modifiedRequest = new Request(event.request, {
                     headers: new Headers({
                         ...event.request.headers,

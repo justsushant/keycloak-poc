@@ -11,7 +11,7 @@ export default defineConfig({
       key: fs.readFileSync(path.resolve(__dirname, '../localhost-key.pem')),
       cert: fs.readFileSync(path.resolve(__dirname, '../localhost.pem')),
     },
-    host: '192.168.0.104', // Listen on all network interfaces
-    port: 3000,      // Specify the port
+    host: localhost, 
+    port: 3000,    
   },
 })

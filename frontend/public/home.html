@@ -40,7 +40,7 @@
     </div>
 
     <script>
-        const baseUrl = 'https://192.168.0.104:5000';
+        const baseUrl = 'https://localhost:5000';
 
         (async () => {
             if ('serviceWorker' in navigator) {
@@ -90,11 +90,10 @@
         async function getKeycloakLoginPageURL() {
             const codeVerifier = generateCodeVerifier();
             const codeChallenge = await generateCodeChallenge(codeVerifier);
-            const clientId = 'qwerty';
-            const redirectUri = 'https://192.168.0.104:3000/play';
+            const clientId = 'temp-client';
+            const redirectUri = 'https://localhost:3000/play';
             const scope = 'openid';
-            const loginPageUrl = `https://192.168.0.104:443/realms/test/protocol/openid-connect/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
-            // const loginPageUrl = `https://192.168.0.104:8443/realms/test/protocol/openid-connect/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
+            const loginPageUrl = `https://localhost:8443/realms/test/protocol/openid-connect/auth?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&code_challenge=${codeChallenge}&code_challenge_method=S256`;
             navigator.serviceWorker.controller.postMessage({
                 type: 'STORE_DETAILS',
                 data: {
